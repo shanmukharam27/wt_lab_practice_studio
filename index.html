@@ -19,6 +19,15 @@ aside{border-right:1px solid var(--line);padding:18px 14px;background:#0e1628;ma
 main{padding:24px;min-width:0}.topline{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.eyebrow{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:1px}.title{font-size:26px;margin:3px 0 14px}.qtabs{display:flex;gap:8px;margin:14px 0}.tab,.action{border:1px solid var(--line);background:var(--panel);color:var(--text);padding:9px 13px;border-radius:8px;cursor:pointer}.tab.active{background:#26375d;border-color:var(--accent)}
 .grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(320px,.9fr);gap:16px;align-items:start}.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:15px}.panelhead{display:flex;align-items:center;justify-content:space-between;padding:12px 15px;border-bottom:1px solid var(--line);font-weight:700}.panelbody{padding:15px}.question{font-size:16px;margin:0}.pill{font-size:11px;color:#c4d2ff;background:#25365d;border-radius:20px;padding:4px 8px}
 .toolbar{display:flex;gap:7px;flex-wrap:wrap}.action{font-size:12px;padding:7px 10px}.action.primary{background:#3855a0;border-color:#5576d1}.CodeMirror{height:440px;font:13px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace}.CodeMirror-gutters{background:#111827;border-right:1px solid #293650}.preview{width:100%;height:440px;background:white;border:0;display:block}.explain{color:#d5def1}.viva li{margin:8px 0;color:#d5def1}.small{font-size:12px;color:var(--muted)}.progress{height:6px;background:#26334c;border-radius:10px;overflow:hidden;margin:10px 0}.progress>div{height:100%;background:var(--green);width:0}.done{color:var(--green)}.hidden{display:none}
+
+/* Multi-file Tab Bar */
+.filetabs{display:flex;gap:6px;padding:8px 12px;background:#0b1122;border-bottom:1px solid var(--line);overflow-x:auto}
+.filetabs.hidden{display:none}
+.filetab{display:inline-flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);color:var(--muted);padding:6px 12px;border-radius:6px;font-size:13px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;cursor:pointer;white-space:nowrap;transition:0.15s}
+.filetab:hover{background:#1a2744;color:var(--text)}
+.filetab.active{background:#253966;border-color:var(--accent);color:#ffffff;font-weight:bold}
+.fileicon{opacity:0.75}
+
 @media(max-width:900px){.layout{grid-template-columns:1fr}aside{max-height:none;border-right:0;border-bottom:1px solid var(--line)}.setlist{grid-template-columns:repeat(8,1fr)}main{padding:15px}.grid{grid-template-columns:1fr}.CodeMirror,.preview{height:350px}}
 @media(max-width:520px){.setlist{grid-template-columns:repeat(5,1fr)}.title{font-size:21px}}
 </style></head>
@@ -39,13 +48,14 @@ main{padding:24px;min-width:0}.topline{display:flex;align-items:center;gap:12px;
 <section>
 <div class="panel">
 <div class="panelhead"><span>Solution editor</span><div class="toolbar"><button class="action" id="reset">Reset</button><button class="action" id="copy">Copy code</button><button class="action primary" id="run">Run preview ▶</button></div></div>
+<div id="filetabs" class="filetabs hidden"></div>
 <div class="panelbody" style="padding:0"><textarea id="editor"></textarea></div>
-<div class="panelbody small">Editable code · line numbers · syntax highlighting · changes saved on this device</div>
+<div class="panelbody small" id="editorhint">Editable code · line numbers · syntax highlighting · changes saved on this device</div>
 </div>
 <div class="panel"><div class="panelhead">Line-by-line concept</div><div class="panelbody explain" id="explanation"></div></div>
 </section>
 <section>
-<div class="panel"><div class="panelhead">Live output <span class="small">Browser preview</span></div><iframe class="preview" id="preview" sandbox="allow-scripts allow-forms"></iframe><div class="panelbody small" id="previewnote">HTML/CSS/JavaScript can run here. PHP, MySQL and Node.js require local runtimes.</div></div>
+<div class="panel"><div class="panelhead">Live output <span class="small">Browser preview</span></div><iframe class="preview" id="preview" sandbox="allow-scripts allow-forms allow-same-origin"></iframe><div class="panelbody small" id="previewnote">HTML/CSS/JavaScript can run here. PHP, MySQL and Node.js require local runtimes.</div></div>
 <div class="panel"><div class="panelhead">Possible viva questions</div><div class="panelbody"><ol class="viva" id="viva"></ol></div></div>
 <div class="panel"><div class="panelbody"><label><input type="checkbox" id="markdone"> Mark this question as completed</label></div></div>
 </section></div>
@@ -59,19 +69,265 @@ main{padding:24px;min-width:0}.topline{display:flex;align-items:center;gap:12px;
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/php/php.min.js"></script>
 <script src="data.js"></script>
 <script>
-const $=id=>document.getElementById(id);let setIndex=0,qIndex=0,editor;
-const key=(s,q)=>`wt-code-${s}-${q}`;
-function langMode(l){return l==="PHP"?"application/x-httpd-php":l==="JavaScript"?"javascript":l==="Node.js"?"javascript":l==="AngularJS"||l==="HTML"||l==="CSS / HTML"?"htmlmixed":"htmlmixed"}
-function renderSetButtons(filter=""){const list=$("setlist");list.innerHTML="";WT_SETS.forEach((s,i)=>{const match=String(s.set).includes(filter)||s.questions.some(q=>q.question.toLowerCase().includes(filter.toLowerCase()));if(!match)return;const b=document.createElement("button");b.className="setbtn"+(i===setIndex?" active":"");b.textContent=s.set;b.onclick=()=>{setIndex=i;qIndex=0;render()};list.appendChild(b)})}
-function completedCount(){let n=0;WT_SETS.forEach(s=>s.questions.forEach(q=>{if(localStorage.getItem(`done-${s.set}-${q.number}`)==="1")n++}));$("progressbar").style.width=(n/80*100)+"%";$("progresslabel").textContent=`${n} / 80 completed`}
-function render(){const s=WT_SETS[setIndex],q=s.questions[qIndex];$("settitle").textContent=`Set ${s.set}`;$("language").textContent=q.language;$("question").textContent=q.question;$("qnumber").textContent=`${(s.set-1)*2+q.number} / 80`;$("explanation").textContent=q.explanation;$("viva").innerHTML=q.viva.map(v=>`<li>${v}</li>`).join("");document.querySelectorAll(".tab").forEach((b,i)=>b.classList.toggle("active",i===qIndex));$("completed").textContent=localStorage.getItem(`done-${s.set}-${q.number}`)==="1"?"✓ Completed":"";$("markdone").checked=localStorage.getItem(`done-${s.set}-${q.number}`)==="1";
-const saved=localStorage.getItem(key(s.set,q.number));const code=saved??q.code;if(editor){editor.toTextArea()}editor=CodeMirror.fromTextArea($("editor"),{value:code,lineNumbers:true,mode:langMode(q.language),theme:"material-darker",indentUnit:2,tabSize:2,lineWrapping:false});editor.setValue(code);editor.on("change",()=>localStorage.setItem(key(s.set,q.number),editor.getValue()));$("preview").srcdoc="<p style='font:14px Arial;color:#333;padding:14px'>Press <b>Run preview</b> to execute browser code.</p>";$("previewnote").textContent=["PHP","Node.js"].includes(q.language)?"This code is for study. Run PHP/Node.js locally with the required runtime.":"Run the code to see the browser output.";renderSetButtons($("search").value);completedCount()}
-document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{qIndex=Number(b.dataset.q);render()});
+const $=id=>document.getElementById(id);
+let setIndex=0, qIndex=0, fileIndex=0, editor;
+
+const key=(s,q,fn)=>fn?`wt-code-${s}-${q}-${fn}`:`wt-code-${s}-${q}`;
+
+function langMode(name, lang){
+  if(name){
+    if(name.endsWith('.css')) return 'css';
+    if(name.endsWith('.js')) return 'javascript';
+    if(name.endsWith('.php')) return 'application/x-httpd-php';
+    if(name.endsWith('.html') || name.endsWith('.htm')) return 'htmlmixed';
+  }
+  return lang==="PHP"?"application/x-httpd-php":lang==="JavaScript"?"javascript":lang==="Node.js"?"javascript":lang==="AngularJS"||lang==="HTML"||lang==="CSS / HTML"?"htmlmixed":"htmlmixed";
+}
+
+function renderSetButtons(filter=""){
+  const list=$("setlist");list.innerHTML="";
+  WT_SETS.forEach((s,i)=>{
+    const match=String(s.set).includes(filter)||s.questions.some(q=>q.question.toLowerCase().includes(filter.toLowerCase()));
+    if(!match)return;
+    const b=document.createElement("button");
+    b.className="setbtn"+(i===setIndex?" active":"");
+    b.textContent=s.set;
+    b.onclick=()=>{setIndex=i;qIndex=0;fileIndex=0;render()};
+    list.appendChild(b);
+  });
+}
+
+function completedCount(){
+  let n=0;
+  WT_SETS.forEach(s=>s.questions.forEach(q=>{
+    if(localStorage.getItem(`done-${s.set}-${q.number}`)==="1")n++;
+  }));
+  $("progressbar").style.width=(n/80*100)+"%";
+  $("progresslabel").textContent=`${n} / 80 completed`;
+}
+
+function renderFileTabs(q){
+  const bar=$("filetabs");
+  if(!q.files || q.files.length===0){
+    bar.className="filetabs hidden";
+    bar.innerHTML="";
+    return;
+  }
+  bar.className="filetabs";
+  bar.innerHTML="";
+  q.files.forEach((f,idx)=>{
+    const btn=document.createElement("button");
+    btn.className="filetab"+(idx===fileIndex?" active":"");
+    const icon = f.name.endsWith('.html') ? '🌐' : f.name.endsWith('.css') ? '🎨' : f.name.endsWith('.php') ? '🐘' : f.name.endsWith('.js') ? '⚡' : '📄';
+    btn.innerHTML=`<span class="fileicon">${icon}</span> ${f.name}`;
+    btn.onclick=()=>{
+      switchToFile(idx, false);
+    };
+    bar.appendChild(btn);
+  });
+}
+
+function switchToFile(idx, andPreview){
+  const s=WT_SETS[setIndex], q=s.questions[qIndex];
+  if(!q.files || !q.files[idx]) return;
+  // Save current file
+  if(editor){
+    const currFile = q.files[fileIndex];
+    localStorage.setItem(key(s.set, q.number, currFile.name), editor.getValue());
+  }
+  fileIndex = idx;
+  const targetFile = q.files[fileIndex];
+  const saved = localStorage.getItem(key(s.set, q.number, targetFile.name));
+  const code = saved ?? targetFile.code;
+  if(editor){
+    editor.setValue(code);
+    editor.setOption("mode", langMode(targetFile.name, q.language));
+  }
+  renderFileTabs(q);
+  if(andPreview){
+    runPreview(targetFile.name);
+  }
+}
+
+function render(){
+  const s=WT_SETS[setIndex], q=s.questions[qIndex];
+  $("settitle").textContent=`Set ${s.set}`;
+  $("language").textContent=q.language;
+  $("question").textContent=q.question;
+  $("qnumber").textContent=`${(s.set-1)*2+q.number} / 80`;
+  $("explanation").textContent=q.explanation;
+  $("viva").innerHTML=q.viva.map(v=>`<li>${v}</li>`).join("");
+  document.querySelectorAll(".tab").forEach((b,i)=>b.classList.toggle("active",i===qIndex));
+  $("completed").textContent=localStorage.getItem(`done-${s.set}-${q.number}`)==="1"?"✓ Completed":"";
+  $("markdone").checked=localStorage.getItem(`done-${s.set}-${q.number}`)==="1";
+
+  // Check multi-file support
+  const hasFiles = q.files && q.files.length > 0;
+  if(!hasFiles) fileIndex = 0;
+  else if(fileIndex >= q.files.length) fileIndex = 0;
+
+  renderFileTabs(q);
+
+  const activeFilename = hasFiles ? q.files[fileIndex].name : null;
+  const storageKey = key(s.set, q.number, activeFilename);
+  const defaultCode = hasFiles ? q.files[fileIndex].code : q.code;
+  const saved = localStorage.getItem(storageKey);
+  const code = saved ?? defaultCode;
+
+  if(editor){ editor.toTextArea(); }
+  editor=CodeMirror.fromTextArea($("editor"),{
+    value:code,
+    lineNumbers:true,
+    mode:langMode(activeFilename, q.language),
+    theme:"material-darker",
+    indentUnit:2,
+    tabSize:2,
+    lineWrapping:false
+  });
+  editor.setValue(code);
+  editor.on("change",()=>{
+    const currKey = hasFiles ? key(s.set, q.number, q.files[fileIndex].name) : key(s.set, q.number);
+    localStorage.setItem(currKey, editor.getValue());
+  });
+
+  $("preview").srcdoc="<p style='font:14px Arial;color:#333;padding:14px'>Press <b>Run preview ▶</b> to execute browser code.</p>";
+  $("previewnote").textContent=["PHP","Node.js"].includes(q.language) && !hasFiles ?
+    "This code is for study. Run PHP/Node.js locally with the required runtime." :
+    "Click links or buttons in the preview to test interactive navigation.";
+  renderSetButtons($("search").value);
+  completedCount();
+}
+
+function runPreview(startFileName){
+  const s=WT_SETS[setIndex], q=s.questions[qIndex];
+  if(!q.files || q.files.length === 0){
+    if(["PHP","Node.js"].includes(q.language)){
+      $("preview").srcdoc="<div style='font:15px Arial;padding:18px;color:#333'><b>Local runtime required</b><p>This program requires PHP, MySQL or Node.js runtime to execute server-side code.</p></div>";
+      return;
+    }
+    $("preview").srcdoc = editor.getValue();
+    return;
+  }
+
+  // Multi-file resolution
+  const fileMap = {};
+  q.files.forEach((f, idx)=>{
+    const saved = localStorage.getItem(key(s.set, q.number, f.name));
+    fileMap[f.name] = (idx === fileIndex && editor) ? editor.getValue() : (saved ?? f.code);
+  });
+
+  const entryName = startFileName || (fileMap['home.html'] ? 'home.html' : fileMap['index.html'] ? 'index.html' : fileMap['portfolio.html'] ? 'portfolio.html' : fileMap['frames.html'] ? 'frames.html' : q.files[0].name);
+  let html = fileMap[entryName] || fileMap[q.files[0].name] || editor.getValue();
+
+  // If there is an external CSS file, inline it for standard preview
+  if(fileMap['styles.css'] && !html.includes(fileMap['styles.css'])){
+    html = html.replace('</head>', `<style>/* Inlined styles.css */\n${fileMap['styles.css']}</style></head>`);
+  }
+
+  // Inject seamless link navigation and target frame handler
+  const bridgeScript = `
+  <script>
+  (function() {
+    var files = ${JSON.stringify(fileMap)};
+    document.addEventListener('click', function(e) {
+      var a = e.target.closest('a');
+      if (a && a.getAttribute('href')) {
+        var href = a.getAttribute('href');
+        var target = a.getAttribute('target');
+        if (target) {
+          var frame = document.querySelector('iframe[name="' + target + '"]') || document.getElementById(target);
+          if (frame && files[href]) {
+            e.preventDefault();
+            frame.srcdoc = files[href];
+            window.parent.postMessage({ type: 'wt-file-selected', file: href }, '*');
+            return;
+          }
+        }
+        if (files[href]) {
+          e.preventDefault();
+          window.parent.postMessage({ type: 'wt-navigate', file: href }, '*');
+        }
+      }
+    });
+    window.addEventListener('load', function() {
+      document.querySelectorAll('iframe').forEach(function(ifr) {
+        var src = ifr.getAttribute('src');
+        if (src && files[src]) {
+          ifr.srcdoc = files[src];
+        }
+      });
+    });
+  })();
+  <\/script>
+  `;
+
+  $("preview").srcdoc = html + bridgeScript;
+}
+
+window.addEventListener('message', e=>{
+  if(!e.data) return;
+  if(e.data.type === 'wt-navigate'){
+    const q=WT_SETS[setIndex].questions[qIndex];
+    if(q.files){
+      const idx = q.files.findIndex(f=>f.name===e.data.file);
+      if(idx!==-1) switchToFile(idx, true);
+    }
+  } else if(e.data.type === 'wt-file-selected'){
+    const q=WT_SETS[setIndex].questions[qIndex];
+    if(q.files){
+      const idx = q.files.findIndex(f=>f.name===e.data.file);
+      if(idx!==-1) switchToFile(idx, false);
+    }
+  }
+});
+
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{
+  qIndex=Number(b.dataset.q);
+  fileIndex=0;
+  render();
+});
+
 $("search").addEventListener("input",e=>renderSetButtons(e.target.value));
-$("copy").onclick=async()=>{await navigator.clipboard.writeText(editor.getValue());$("copy").textContent="Copied ✓";setTimeout(()=>$("copy").textContent="Copy code",1200)};
-$("reset").onclick=()=>{const q=WT_SETS[setIndex].questions[qIndex];editor.setValue(q.code);localStorage.removeItem(key(WT_SETS[setIndex].set,q.number))};
-$("run").onclick=()=>{const q=WT_SETS[setIndex].questions[qIndex];if(["PHP","Node.js"].includes(q.language)){ $("preview").srcdoc="<div style='font:15px Arial;padding:18px;color:#333'><b>Local runtime required</b><p>This program cannot execute inside a static browser preview. Use PHP's local server, Node.js, or MySQL as appropriate.</p></div>";return}$("preview").srcdoc=editor.getValue()};
-$("markdone").onchange=e=>{const q=WT_SETS[setIndex].questions[qIndex];localStorage.setItem(`done-${WT_SETS[setIndex].set}-${q.number}`,e.target.checked?"1":"0");completedCount();$("completed").textContent=e.target.checked?"✓ Completed":""};
-function network(){const online=navigator.onLine;$("network").textContent=online?"● Online":"● Offline";$("network").style.color=online?"var(--green)":"#ffbd69"}window.addEventListener("online",network);window.addEventListener("offline",network);network();
-render();if("serviceWorker"in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}))}
+
+$("copy").onclick=async()=>{
+  await navigator.clipboard.writeText(editor.getValue());
+  $("copy").textContent="Copied ✓";
+  setTimeout(()=>$("copy").textContent="Copy code",1200);
+};
+
+$("reset").onclick=()=>{
+  const s=WT_SETS[setIndex], q=s.questions[qIndex];
+  if(q.files && q.files.length > 0){
+    const f=q.files[fileIndex];
+    editor.setValue(f.code);
+    localStorage.removeItem(key(s.set, q.number, f.name));
+  } else {
+    editor.setValue(q.code);
+    localStorage.removeItem(key(s.set, q.number));
+  }
+};
+
+$("run").onclick=()=>runPreview();
+
+$("markdone").onchange=e=>{
+  const q=WT_SETS[setIndex].questions[qIndex];
+  localStorage.setItem(`done-${WT_SETS[setIndex].set}-${q.number}`,e.target.checked?"1":"0");
+  completedCount();
+  $("completed").textContent=e.target.checked?"✓ Completed":"";
+};
+
+function network(){
+  const online=navigator.onLine;
+  $("network").textContent=online?"● Online":"● Offline";
+  $("network").style.color=online?"var(--green)":"#ffbd69";
+}
+window.addEventListener("online",network);
+window.addEventListener("offline",network);
+network();
+
+render();
+
+if("serviceWorker"in navigator){
+  window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+}
 </script></body></html>
