@@ -1,5 +1,5 @@
-const CACHE="wt-lab-v3";
-const CORE=["./","./index.html","./data.js","./manifest.webmanifest"];
+const CACHE="wt-lab-v4";
+const CORE=["./","./index.html","./wtlab.html","./data.js","./manifest.webmanifest"];
 const CDN=[
 "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css",
 "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css",
@@ -9,7 +9,8 @@ const CDN=[
 "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js",
 "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js",
 "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/clike/clike.min.js",
-"https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/php/php.min.js"
+"https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/php/php.min.js",
+"https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"
 ];
 self.addEventListener("install",e=>e.waitUntil((async()=>{const c=await caches.open(CACHE);await c.addAll(CORE);await Promise.all(CDN.map(async u=>{try{const r=await fetch(u,{mode:"no-cors"});await c.put(u,r)}catch(_){}}));self.skipWaiting()})()));
 self.addEventListener("activate",e=>e.waitUntil((async()=>{for(const k of await caches.keys())if(k!==CACHE)await caches.delete(k);await self.clients.claim()})()));
