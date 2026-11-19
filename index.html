@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#111827"><meta name="description" content="Offline-ready Web Technologies Lab practice codebook">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
+<title>WT Lab Practice Studio</title>
+<style>
+:root{--bg:#0b1020;--panel:#121a2d;--panel2:#18233a;--line:#293650;--text:#e8eefc;--muted:#9aabc8;--accent:#7c9cff;--green:#3ddc97}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 Inter,system-ui,Segoe UI,sans-serif}
+header{height:66px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;border-bottom:1px solid var(--line);background:#0e1628;position:sticky;top:0;z-index:5}
+.brand{font-weight:800;letter-spacing:.2px}.brand span{color:var(--accent)}.status{font-size:12px;color:var(--green);border:1px solid #245b49;padding:5px 9px;border-radius:20px}
+.layout{display:grid;grid-template-columns:270px minmax(0,1fr);min-height:calc(100vh - 66px)}
+aside{border-right:1px solid var(--line);padding:18px 14px;background:#0e1628;max-height:calc(100vh - 66px);overflow:auto}
+.search{width:100%;padding:11px 12px;background:var(--panel);border:1px solid var(--line);border-radius:9px;color:var(--text);outline:none;margin-bottom:14px}
+.setlist{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.setbtn{border:1px solid var(--line);background:var(--panel);color:var(--muted);border-radius:8px;padding:9px 4px;cursor:pointer}.setbtn.active{background:#25365c;border-color:var(--accent);color:white}
+main{padding:24px;min-width:0}.topline{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.eyebrow{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:1px}.title{font-size:26px;margin:3px 0 14px}.qtabs{display:flex;gap:8px;margin:14px 0}.tab,.action{border:1px solid var(--line);background:var(--panel);color:var(--text);padding:9px 13px;border-radius:8px;cursor:pointer}.tab.active{background:#26375d;border-color:var(--accent)}
+.grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(320px,.9fr);gap:16px;align-items:start}.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:15px}.panelhead{display:flex;align-items:center;justify-content:space-between;padding:12px 15px;border-bottom:1px solid var(--line);font-weight:700}.panelbody{padding:15px}.question{font-size:16px;margin:0}.pill{font-size:11px;color:#c4d2ff;background:#25365d;border-radius:20px;padding:4px 8px}
+.toolbar{display:flex;gap:7px;flex-wrap:wrap}.action{font-size:12px;padding:7px 10px}.action.primary{background:#3855a0;border-color:#5576d1}.CodeMirror{height:440px;font:13px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace}.CodeMirror-gutters{background:#111827;border-right:1px solid #293650}.preview{width:100%;height:440px;background:white;border:0;display:block}.explain{color:#d5def1}.viva li{margin:8px 0;color:#d5def1}.small{font-size:12px;color:var(--muted)}.progress{height:6px;background:#26334c;border-radius:10px;overflow:hidden;margin:10px 0}.progress>div{height:100%;background:var(--green);width:0}.done{color:var(--green)}.hidden{display:none}
+@media(max-width:900px){.layout{grid-template-columns:1fr}aside{max-height:none;border-right:0;border-bottom:1px solid var(--line)}.setlist{grid-template-columns:repeat(8,1fr)}main{padding:15px}.grid{grid-template-columns:1fr}.CodeMirror,.preview{height:350px}}
+@media(max-width:520px){.setlist{grid-template-columns:repeat(5,1fr)}.title{font-size:21px}}
+</style></head>
+<body>
+<header><div class="brand">⚡ WT Lab <span>Practice Studio</span></div><div class="status" id="network">● Checking connection</div></header>
+<div class="layout">
+<aside>
+<input id="search" class="search" placeholder="Search sets or questions…">
+<div class="small" id="count">40 sets · 80 questions</div><div class="progress"><div id="progressbar"></div></div>
+<div class="small" id="progresslabel">0 / 80 completed</div>
+<h3 class="small" style="margin-top:22px">QUESTION SETS</h3><div class="setlist" id="setlist"></div>
+</aside>
+<main>
+<div class="topline"><div><div class="eyebrow">Web Technologies Laboratory</div><h1 class="title" id="settitle">Set 1</h1></div><span class="pill" id="language">HTML</span><span class="small" id="completed"></span></div>
+<div class="qtabs"><button class="tab active" data-q="0">Question 1</button><button class="tab" data-q="1">Question 2</button></div>
+<div class="panel"><div class="panelhead">Question <span class="small" id="qnumber">1 / 80</span></div><div class="panelbody"><p class="question" id="question"></p></div></div>
+<div class="grid">
+<section>
+<div class="panel">
+<div class="panelhead"><span>Solution editor</span><div class="toolbar"><button class="action" id="reset">Reset</button><button class="action" id="copy">Copy code</button><button class="action primary" id="run">Run preview ▶</button></div></div>
+<div class="panelbody" style="padding:0"><textarea id="editor"></textarea></div>
+<div class="panelbody small">Editable code · line numbers · syntax highlighting · changes saved on this device</div>
+</div>
+<div class="panel"><div class="panelhead">Line-by-line concept</div><div class="panelbody explain" id="explanation"></div></div>
+</section>
+<section>
+<div class="panel"><div class="panelhead">Live output <span class="small">Browser preview</span></div><iframe class="preview" id="preview" sandbox="allow-scripts allow-forms"></iframe><div class="panelbody small" id="previewnote">HTML/CSS/JavaScript can run here. PHP, MySQL and Node.js require local runtimes.</div></div>
+<div class="panel"><div class="panelhead">Possible viva questions</div><div class="panelbody"><ol class="viva" id="viva"></ol></div></div>
+<div class="panel"><div class="panelbody"><label><input type="checkbox" id="markdone"> Mark this question as completed</label></div></div>
+</section></div>
+</main></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/clike/clike.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/php/php.min.js"></script>
+<script src="data.js"></script>
+<script>
+const $=id=>document.getElementById(id);let setIndex=0,qIndex=0,editor;
+const key=(s,q)=>`wt-code-${s}-${q}`;
+function langMode(l){return l==="PHP"?"application/x-httpd-php":l==="JavaScript"?"javascript":l==="Node.js"?"javascript":l==="AngularJS"||l==="HTML"||l==="CSS / HTML"?"htmlmixed":"htmlmixed"}
+function renderSetButtons(filter=""){const list=$("setlist");list.innerHTML="";WT_SETS.forEach((s,i)=>{const match=String(s.set).includes(filter)||s.questions.some(q=>q.question.toLowerCase().includes(filter.toLowerCase()));if(!match)return;const b=document.createElement("button");b.className="setbtn"+(i===setIndex?" active":"");b.textContent=s.set;b.onclick=()=>{setIndex=i;qIndex=0;render()};list.appendChild(b)})}
+function completedCount(){let n=0;WT_SETS.forEach(s=>s.questions.forEach(q=>{if(localStorage.getItem(`done-${s.set}-${q.number}`)==="1")n++}));$("progressbar").style.width=(n/80*100)+"%";$("progresslabel").textContent=`${n} / 80 completed`}
+function render(){const s=WT_SETS[setIndex],q=s.questions[qIndex];$("settitle").textContent=`Set ${s.set}`;$("language").textContent=q.language;$("question").textContent=q.question;$("qnumber").textContent=`${(s.set-1)*2+q.number} / 80`;$("explanation").textContent=q.explanation;$("viva").innerHTML=q.viva.map(v=>`<li>${v}</li>`).join("");document.querySelectorAll(".tab").forEach((b,i)=>b.classList.toggle("active",i===qIndex));$("completed").textContent=localStorage.getItem(`done-${s.set}-${q.number}`)==="1"?"✓ Completed":"";$("markdone").checked=localStorage.getItem(`done-${s.set}-${q.number}`)==="1";
+const saved=localStorage.getItem(key(s.set,q.number));const code=saved??q.code;if(editor){editor.toTextArea()}editor=CodeMirror.fromTextArea($("editor"),{value:code,lineNumbers:true,mode:langMode(q.language),theme:"material-darker",indentUnit:2,tabSize:2,lineWrapping:false});editor.setValue(code);editor.on("change",()=>localStorage.setItem(key(s.set,q.number),editor.getValue()));$("preview").srcdoc="<p style='font:14px Arial;color:#333;padding:14px'>Press <b>Run preview</b> to execute browser code.</p>";$("previewnote").textContent=["PHP","Node.js"].includes(q.language)?"This code is for study. Run PHP/Node.js locally with the required runtime.":"Run the code to see the browser output.";renderSetButtons($("search").value);completedCount()}
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{qIndex=Number(b.dataset.q);render()});
+$("search").addEventListener("input",e=>renderSetButtons(e.target.value));
+$("copy").onclick=async()=>{await navigator.clipboard.writeText(editor.getValue());$("copy").textContent="Copied ✓";setTimeout(()=>$("copy").textContent="Copy code",1200)};
+$("reset").onclick=()=>{const q=WT_SETS[setIndex].questions[qIndex];editor.setValue(q.code);localStorage.removeItem(key(WT_SETS[setIndex].set,q.number))};
+$("run").onclick=()=>{const q=WT_SETS[setIndex].questions[qIndex];if(["PHP","Node.js"].includes(q.language)){ $("preview").srcdoc="<div style='font:15px Arial;padding:18px;color:#333'><b>Local runtime required</b><p>This program cannot execute inside a static browser preview. Use PHP's local server, Node.js, or MySQL as appropriate.</p></div>";return}$("preview").srcdoc=editor.getValue()};
+$("markdone").onchange=e=>{const q=WT_SETS[setIndex].questions[qIndex];localStorage.setItem(`done-${WT_SETS[setIndex].set}-${q.number}`,e.target.checked?"1":"0");completedCount();$("completed").textContent=e.target.checked?"✓ Completed":""};
+function network(){const online=navigator.onLine;$("network").textContent=online?"● Online":"● Offline";$("network").style.color=online?"var(--green)":"#ffbd69"}window.addEventListener("online",network);window.addEventListener("offline",network);network();
+render();if("serviceWorker"in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}))}
+</script></body></html>
