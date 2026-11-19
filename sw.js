@@ -1,4 +1,4 @@
-const CACHE="wt-lab-v2";
+const CACHE="wt-lab-v3";
 const CORE=["./","./index.html","./data.js","./manifest.webmanifest"];
 const CDN=[
 "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css",
